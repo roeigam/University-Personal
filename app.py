@@ -110,8 +110,10 @@ def print_menu():
     print("2) Add Teacher")
     print("3) List Students")
     print("4) List Teachers")
-    print("5) Export all personnel to CSV")  # NEW
+    print("5) Export all personnel to CSV")
+    print("6) Show overall students average")   # NEW
     print("0) Exit")
+
 
 def main():
     service = UniversityService(
@@ -170,6 +172,15 @@ def main():
                 print(f"✅ Exported to: {path}")
             except Exception as e:
                 print(f"❌ Export failed: {e}")
+        
+        elif choice == "6":
+            avg = service.average_student_grade()
+            if avg is None:
+                print("ℹ️  No students yet — add some first, then try again.")
+            else:
+                count = len(service.list_students())
+                print(f"🎯 Overall students average: {avg:.2f}/100 (across {count} students)")
+
 
         elif choice == "0":
             print("Bye!")

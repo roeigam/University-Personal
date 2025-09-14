@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from .models import Student, Teacher, FieldOfStudy
 from .repositories import Repository
 from .validators import validate_age, validate_year, validate_grade
@@ -7,6 +7,13 @@ class UniversityService:
     def __init__(self, student_repo: Repository[Student], teacher_repo: Repository[Teacher]):
         self.students = student_repo
         self.teachers = teacher_repo
+    
+    def average_student_grade(self) -> Optional[float]:
+        """Return the mean grade (1–100) of all students, or None if none exist."""
+        students = self.students.list_all()
+        if not students:
+            return None
+        return sum(s.average_grade for s in students) / len(students)
 
     # ---- Students ----
     def add_student(self, name: str, age: int, major: FieldOfStudy, year: int, average_grade: int) -> Student:
