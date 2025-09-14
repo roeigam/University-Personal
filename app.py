@@ -1,6 +1,12 @@
 from pathlib import Path
 import csv
 import datetime
+from university.access_repository import AccessStudentRepository, AccessTeacherRepository
+
+USE_ACCESS_DB = True  # make sure this is True
+DB_PATH = (Path(__file__).parent / "data" / "university.accdb").resolve()
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+print(f"[INFO] Using Access DB at: {DB_PATH}")
 
 from university.models import FieldOfStudy
 from university.repositories import InMemoryRepository
@@ -111,15 +117,23 @@ def print_menu():
     print("3) List Students")
     print("4) List Teachers")
     print("5) Export all personnel to CSV")
-    print("6) Show overall students average")   # NEW
+    print("6) Show overall students average")
+    print("7) Debug: storage status")  # NEW
     print("0) Exit")
 
 
 def main():
-    service = UniversityService(
-        student_repo=InMemoryRepository(),
-        teacher_repo=InMemoryRepository(),
-    )
+    if USE_ACCESS_DB:
+        service = UniversityService(
+            student_repo=AccessStudentRepository(DB_PATH),
+            teacher_repo=AccessTeacherRepository(DB_PATH),
+        )
+    else:
+        # fallback to in-memory
+        service = UniversityService(
+            student_repo=InMemoryRepository(),
+            teacher_repo=InMemoryRepository(),
+        )
 
     while True:
         print_menu()
@@ -180,6 +194,28 @@ def main():
             else:
                 count = len(service.list_students())
                 print(f"🎯 Overall students average: {avg:.2f}/100 (across {count} students)")
+        
+        elif choice == "7":
+            # Show where we're writing, and row counts straight from the service
+            print(f"🔎 Storage path: {DB_PATH}")
+            students = service.list_students()
+            teachers = service.list_teachers()
+            print(f"Students in repo: {len(students)}")
+            print(f"Teachers in repo: {len(teachers)}")
+
+            # If using Access, also list tables via pyodbc for extra confirmation
+            try:
+                if USE_ACCESS_DB:
+                    import pyodbc
+                    conn = pyodbc.connect(f"DRIVER={{Microsoft Access Driver (*.mdb, *.accdb)}};DBQ={DB_PATH};", autocommit=True)
+                    cur = conn.cursor()
+                    print("Tables found:")
+                    for row in cur.tables(tableType='TABLE'):
+                        print(" -", row.table_name)
+                    cur.close()
+                    conn.close()
+            except Exception as e:
+                print(f"(Optional pyodbc table check failed: {e})")
 
 
         elif choice == "0":
